@@ -1,0 +1,266 @@
+---
+title: "Alzheimer's model top 20 predictions breakdown"
+author: "Oleg Ursu"
+output:
+  rmdshower::shower_presentation:
+    self_contained: true
+    katex: true
+    ratio: 16x10
+---
+
+```{r setup, include=FALSE}
+library(data.table)
+library(waterfalls)
+library(ggplot2)
+fn <- "../data/input/104300.rds"
+fn.base <- sub(".rds", "", fn, fixed = T)
+plot.sample.size <- 30
+pred.breakdown <- fread(paste0(fn.base, ".xgb.weighted.pred.breakdown.tsv"), header = T, sep = "\t", quote = "\"", na.strings = "NA")
+```
+
+## Features
+
+1. PPI:GENE SYMBOL - encodes a protein-protein interaction with specified gene symbol
+2. Drug name:cell line name - signature encodes a [LINCS](http://www.lincsproject.org/) drug signature
+3. Organ name - tissue name - encodes [GTEx](https://gtexportal.org/home) gene expression from RNA-Seq data
+4. Pathway names - indicates that a protein is part of [Reactome](https://reactome.org/) or [KEGG](http://www.kegg.jp/kegg/pathway.html) pathway
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 4021, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("AKNA")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 9323, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("FRRS1")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 17245, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("RAB40A")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 19671, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("STARD3")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 16270, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("PIBF1")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 1030, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("TXNDC12")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 18706, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("SCGB3A1")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 15318, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("NDRG2")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 5130, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("CCNY")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 8755, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("FAM92B")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 15435, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("GRIN2C")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 9259, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("FOXP4")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 18999, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("SPOP")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 11064, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("IL17REL")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 6932, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("CRTAM")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 72, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("TMEFF2")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 4418, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("BCO2")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 13671, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("LMO4")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 13720, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("LILRA3")
+```
+
+## { .fullpage }
+
+```{r, echo=FALSE, dev='png'}
+sample <- pred.breakdown[protein_id == 7136, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:plot.sample.size))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 0.7) + theme_bw() + theme(axis.text.x = element_text(angle = 75, hjust = 1, size = 8), axis.text.y = element_text(size = 8) , axis.title = element_text(size = 12)) + xlab("Feature") + ylab("Log odds") + ggtitle("SLC44A2")
+```

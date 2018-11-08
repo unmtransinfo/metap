@@ -1,0 +1,269 @@
+---
+title: "COSMIC oncogenes vs Antineoplastic drug targets comparison"
+output: html_notebook
+---
+
+###[COSMIC](https://cancer.sanger.ac.uk/cosmic) gene census data set downloaded Jan, 2018.
+
+```{r, echo=F}
+library(data.table)
+dc.antineo <- fread("../data/drugcentral/antineoplastic.tsv", header = F, sep = "\t", quote = "\"", col.names = c("struct_id", "drug_name", "target_id", "component_id", "accession", "swissprot", "symbol", "ncbi_gene_id"))
+gene2drug <- dc.antineo[, .(drugs = paste0(drug_name, collapse = "; ")), by = ncbi_gene_id]
+cosmic <- fread("../data/cosmic/cancer_gene_census.csv", header = T, sep = ",", quote = "\"")
+setnames(cosmic, "Entrez GeneId", "ncbi_gene_id")
+cosmic <- merge(cosmic, gene2drug, by.x = "ncbi_gene_id", by.y = "ncbi_gene_id", all.x = T, sort = F)
+cosmic.only <- cosmic[is.na(drugs), uniqueN(ncbi_gene_id)]
+cosmic.tclin <- cosmic[!is.na(drugs), uniqueN(ncbi_gene_id)]
+```
+
+***
+
+```{r, results='asis', echo=F}
+library(knitr)
+options(knitr.kable.NA = '-')
+kable(cosmic[, .(ncbi_gene_id, `Gene Symbol`, `Tumour Types(Somatic)`, drugs)][order(drugs, `Gene Symbol`)], caption = sprintf("COSMIC gene census list. Total genes %d, COSMIC genes mapped to antineoplastic drug targets %d", cosmic[, .N], cosmic.tclin), format = 'pandoc')
+```
+
+***
+
+```{r, echo=F, results="asis"}
+dc.only <- dc.antineo[!ncbi_gene_id %in% cosmic[, ncbi_gene_id]]
+dc.only <- dc.only[, .(drugs = paste0(drug_name, collapse = "; ")), by = ncbi_gene_id]
+dc.only <- merge(dc.only, protein[, .(gene_id, symbol, name)], by.x = "ncbi_gene_id", by.y = "gene_id", all.x = T)
+kable(dc.only, format = 'pandoc', caption = "Antineoplastic drug targets only")
+```
+
+
+***
+
+
+```{r, echo=F}
+library(xgboost)
+library(xgboostExplainer)
+dt <- readRDS("../data/input/cosmic_vs_dc.rds")
+dt <- dt[subset == "train"]
+sumpos <- dt[Y == "pos", .N]
+sumneg <- dt[Y == "neg", .N]
+model.param <- list(max_depth = 7, eta = 0.1, gamma = 0.01, min_child_weight = 0, subsample = 1, colsample_bytree = 0.8, objective = "binary:logistic", scale_pos_weight = sumneg/sumpos)
+X <- data.matrix(dt[, -c("Y", "id1", "subset")])
+y <- ifelse(dt[, Y] == "pos", 1, 0)
+dtrain <- xgb.DMatrix(X, label = y)
+model <- xgb.train(params = model.param, data = dtrain, nrounds = 58, verbose = 1, nthread = 4)
+pred <- predict(model, dtrain)
+meta <- dt[, .(id1, Y)]
+meta[, pred.prob := pred]
+library(RPostgreSQL)
+conn <- dbConnect(PostgreSQL(), user = "oleg", dbname = "metap")
+protein <- dbGetQuery(conn, "select ncbi.protein_id,protein.symbol,protein.accession,gene_id,protein.name from protein,ncbi where ncbi.protein_id = protein.protein_id and tax_id=9606")
+dbDisconnect(conn)
+rm(conn)
+setDT(protein)
+protein <- unique(protein, by = "protein_id")
+meta <- merge(meta, protein, by.x = "id1", by.y = "protein_id", all.x = T, sort = F)
+explainer <- buildExplainer(xgb.model = model, type = "binary", base_score = 0.5, n_first_tree = model$niter - 1, trainingData = dtrain)
+pred.breakdown <- explainPredictions(xgb.model = model, explainer = explainer, data = dtrain)
+setnames(meta, "id1", "protein_id")
+pred.breakdown[, `:=`(protein_id = meta$protein_id, accession = meta$accession)]
+pred.breakdown <- melt(pred.breakdown, id.vars = c("protein_id", "accession"), variable.name = "feature", value.name = "log.odds", variable.factor = F, value.factor = F, verbose = T)
+pred.breakdown <- pred.breakdown[log.odds != 0.0]
+feature.name.long <- readable.feature.names(pred.breakdown[, feature])
+pred.breakdown[, feature.long := feature.name.long]
+pred.breakdown <- merge(pred.breakdown, protein[, .(protein_id, symbol)], by.x = "protein_id", by.y = "protein_id", all.x = T, sort = F)
+```
+
+***
+
+###Feature importance extracted from extreme gradient boosting model
+```{r, echo=F, fig.align="center", fig.width=10}
+features <- colnames(dt)[4:ncol(dt)]
+features.names <- readable.feature.names(features)
+imp <- xgb.importance(feature_names = features.names, model = model)
+xgb.ggplot.importance(importance_matrix = imp, top_n = 20, n_clusters = 1) + theme_bw() + theme(legend.position = "none", axis.title = element_text(size = 22), axis.text = element_text(size = 14), plot.title = element_text(size = 26)) + ggtitle("Model feature importance")
+```
+
+***
+
+
+### Genes with top Tclin scores
+```{r, echo = F, fig.align="center", fig.width=18}
+library(waterfalls)
+library(ggplot2)
+id <- meta[order(-pred.prob)][1, protein_id]
+gene.sym <- meta[protein_id == id, symbol]
+sample <- pred.breakdown[protein_id == id, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:30))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 2.0) + theme_bw() + theme(plot.title = element_text(size=40), axis.text.x = element_text(angle = 75, hjust = 1, size = 30), axis.text.y = element_text(size = 30) , axis.title = element_text(size = 30)) + xlab("Feature") + ylab("Log odds") + ggtitle(gene.sym)
+```
+
+***
+
+```{r, echo = F, fig.align="center", fig.width=18}
+id <- meta[order(-pred.prob)][2, protein_id]
+gene.sym <- meta[protein_id == id, symbol]
+sample <- pred.breakdown[protein_id == id, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:30))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 2.0) + theme_bw() + theme(plot.title = element_text(size=40), axis.text.x = element_text(angle = 75, hjust = 1, size = 30), axis.text.y = element_text(size = 30) , axis.title = element_text(size = 30)) + xlab("Feature") + ylab("Log odds") + ggtitle(gene.sym)
+```
+
+
+***
+
+### Genes with lowest Tclin scores
+```{r, echo = F, fig.align="center", fig.width=18}
+id <- meta[order(pred.prob)][1, protein_id]
+gene.sym <- meta[protein_id == id, symbol]
+sample <- pred.breakdown[protein_id == id, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:30))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 2.0) + theme_bw() + theme(plot.title = element_text(size=40), axis.text.x = element_text(angle = 75, hjust = 1, size = 30), axis.text.y = element_text(size = 30) , axis.title = element_text(size = 30)) + xlab("Feature") + ylab("Log odds") + ggtitle(gene.sym)
+```
+
+
+***
+
+```{r, echo = F, fig.align="center", fig.width=18}
+id <- meta[order(pred.prob)][2, protein_id]
+gene.sym <- meta[protein_id == id, symbol]
+sample <- pred.breakdown[protein_id == id, .(log.odds, feature.long)]
+sample[, log.odds := round(log.odds, 2)]
+sample <- sample[order(-abs(log.odds))]
+idx.intercept <- sample[feature.long == "intercept", which = T]
+idx.keep <- unique(c(idx.intercept, 1:30))
+sample <- sample[idx.keep]
+waterfall(sample, calc_total = T, rect_text_size = 2.0) + theme_bw() + theme(plot.title = element_text(size=40), axis.text.x = element_text(angle = 75, hjust = 1, size = 30), axis.text.y = element_text(size = 30) , axis.title = element_text(size = 30)) + xlab("Feature") + ylab("Log odds") + ggtitle(gene.sym)
+```
+
+***
+
+```{r, echo=F, results='asis'}
+conn <- dbConnect(PostgreSQL(), user = "oleg", dbname = "metap")
+features.dt <- dt[, .(id1, Y)]
+sumpos <- features.dt[Y == "pos", .N]
+sumneg <- features.dt[Y == "neg", .N]
+setnames(features.dt, "id1", "protein_id")
+
+feature.protein_id <- 10557
+part1 <- dbGetQuery(conn, paste0("select * from stringdb_score where protein_id2 in (",paste0(features.dt[, protein_id], collapse = ","),") and protein_id1=",feature.protein_id))
+part2 <- dbGetQuery(conn, paste0("select * from stringdb_score where protein_id1 in (",paste0(features.dt[, protein_id], collapse = ","),") and protein_id2=",feature.protein_id))
+setDT(part1)
+setDT(part2)
+setnames(part2, "protein_id1", "p1")
+setnames(part2, "protein_id2", "p2")
+setnames(part2, "p2", "protein_id1")
+setnames(part2, "p1", "protein_id2")
+feature.dt <- rbindlist(list(part1, part2), use.names = T, fill = T)
+setnames(feature.dt, "combined_score", "PPI:HSPA1A")
+features.dt <- merge(features.dt, feature.dt[, .(protein_id2, `PPI:HSPA1A`)], by.x = "protein_id", by.y = "protein_id2", all.x = T, sort = F)
+
+feature.protein_id <- 11097
+part1 <- dbGetQuery(conn, paste0("select * from stringdb_score where protein_id2 in (",paste0(features.dt[, protein_id], collapse = ","),") and protein_id1=",feature.protein_id))
+part2 <- dbGetQuery(conn, paste0("select * from stringdb_score where protein_id1 in (",paste0(features.dt[, protein_id], collapse = ","),") and protein_id2=",feature.protein_id))
+setDT(part1)
+setDT(part2)
+setnames(part2, "protein_id1", "p1")
+setnames(part2, "protein_id2", "p2")
+setnames(part2, "p2", "protein_id1")
+setnames(part2, "p1", "protein_id2")
+feature.dt <- rbindlist(list(part1, part2), use.names = T, fill = T)
+setnames(feature.dt, "combined_score", "PPI:IL10")
+features.dt <- merge(features.dt, feature.dt[, .(protein_id2, `PPI:IL10`)], by.x = "protein_id", by.y = "protein_id2", all.x = T, sort = F)
+
+feature.protein_id <- 9340
+part1 <- dbGetQuery(conn, paste0("select * from stringdb_score where protein_id2 in (",paste0(features.dt[, protein_id], collapse = ","),") and protein_id1=",feature.protein_id))
+part2 <- dbGetQuery(conn, paste0("select * from stringdb_score where protein_id1 in (",paste0(features.dt[, protein_id], collapse = ","),") and protein_id2=",feature.protein_id))
+setDT(part1)
+setDT(part2)
+setnames(part2, "protein_id1", "p1")
+setnames(part2, "protein_id2", "p2")
+setnames(part2, "p2", "protein_id1")
+setnames(part2, "p1", "protein_id2")
+feature.dt <- rbindlist(list(part1, part2), use.names = T, fill = T)
+setnames(feature.dt, "combined_score", "PPI:GAPDHS")
+features.dt <- merge(features.dt, feature.dt[, .(protein_id2, `PPI:GAPDHS`)], by.x = "protein_id", by.y = "protein_id2", all.x = T, sort = F)
+
+pert.id <- "3013"
+cell.id <- "ASC"
+signature <- dbGetQuery(conn, paste0("select protein_id,zscore from lincs where cell_id = '",cell.id,"' and pert_id = '",pert.id,"' and protein_id in (",paste0(features.dt[, protein_id], collapse = ","),")"))
+setDT(signature)
+setnames(signature, "zscore", "bemegride:ASC")
+features.dt <- merge(features.dt, signature, by.x = "protein_id", by.y = "protein_id", all.x = T, sort = F)
+
+pert.id <- "2866"
+cell.id <- "A375"
+signature <- dbGetQuery(conn, paste0("select protein_id,zscore from lincs where cell_id = '",cell.id,"' and pert_id = '",pert.id,"' and protein_id in (",paste0(features.dt[, protein_id], collapse = ","),")"))
+setDT(signature)
+setnames(signature, "zscore", "zofenopril:A375")
+features.dt <- merge(features.dt, signature, by.x = "protein_id", by.y = "protein_id", all.x = T, sort = F)
+
+pert.id <- "1947"
+cell.id <- "EFO27"
+signature <- dbGetQuery(conn, paste0("select protein_id,zscore from lincs where cell_id = '",cell.id,"' and pert_id = '",pert.id,"' and protein_id in (",paste0(features.dt[, protein_id], collapse = ","),")"))
+setDT(signature)
+setnames(signature, "zscore", "nitrendipine:EFO27")
+features.dt <- merge(features.dt, signature, by.x = "protein_id", by.y = "protein_id", all.x = T, sort = F)
+
+tissue <- "LUNG"
+cell.id <- "NCIH1930"
+expression <- dbGetQuery(conn, sprintf("select protein_id,expression from ccle where tissue = '%s' and cell_id = '%s' and protein_id in (%s)", tissue, cell.id, paste0(features.dt[, protein_id], collapse = ",")))
+setDT(expression)
+setnames(expression, "expression", "LUNG (NCIH1930)")
+features.dt <- merge(features.dt, expression, by.x = "protein_id", by.y = "protein_id", all.x = T, sort = F)
+
+tissue <- "ENDOMETRIUM"
+cell.id <- "HEC265"
+expression <- dbGetQuery(conn, sprintf("select protein_id,expression from ccle where tissue = '%s' and cell_id = '%s' and protein_id in (%s)", tissue, cell.id, paste0(features.dt[, protein_id], collapse = ",")))
+setDT(expression)
+setnames(expression, "expression", "ENDOMETRIUM (HEC265)")
+features.dt <- merge(features.dt, expression, by.x = "protein_id", by.y = "protein_id", all.x = T, sort = F)
+
+reactome.id <- "R-HSA-168254"
+reactome.name <- "Influenza Infection"
+reactome <- dbGetQuery(conn, sprintf("select protein_id,reactome_id from reactomea where reactome_id = '%s'", reactome.id))
+setDT(reactome)
+setnames(reactome, "reactome_id", reactome.name)
+features.dt <- merge(features.dt, reactome, by.x = "protein_id", by.y = "protein_id", all.x = T, sort = F)
+
+go.id <- "GO:0006366"
+go.name <- "transcription from RNA polymerase II promoter"
+go <- dbGetQuery(conn, sprintf("select protein_id,go_id from goa where go_id = '%s'", go.id))
+setDT(go)
+setnames(go, "go_id", go.name)
+features.dt <- merge(features.dt, go, by.x = "protein_id", by.y = "protein_id", all.x = T, sort = F)
+
+summary.dt <- features.dt[!is.na(`PPI:HSPA1A`), .(`% targets with PPI:HSPA1A` = .N), by = Y]
+summary.dt <- merge(summary.dt, features.dt[!is.na(`PPI:IL10`), .(`% targets with PPI:IL10` = .N), by = Y], by.x = "Y", by.y = "Y")
+summary.dt <- merge(summary.dt, features.dt[!is.na(`PPI:GAPDHS`), .(`% targets with PPI:GAPDHS` = .N), by = Y], by.x = "Y", by.y = "Y")
+summary.dt <- merge(summary.dt, features.dt[!is.na(`MAPK1/MAPK3 signaling`), .(`% targets involved in MAPK1/MAPK3 signaling` = .N), by = Y], by.x = "Y", by.y = "Y")
+summary.dt <- merge(summary.dt, features.dt[!is.na(`Influenza Infection`), .(`% targets involved in Influenza Infection` = .N), by = Y], by.x = "Y", by.y = "Y", all.x = T)
+summary.dt[Y == "pos", `% targets involved in Influenza Infection` := 0]
+summary.dt <- merge(summary.dt, features.dt[!is.na(`transcription from RNA polymerase II promoter`), .(`% targets involved in transcription from RNA polymerase II promoter` = .N), by = Y], by.x = "Y", by.y = "Y", all.x = T)
+summary.dt <- merge(summary.dt, features.dt[!is.na(`bemegride:ASC`), .(`median bemegride:ASC zscore` = median(`bemegride:ASC`)), by = Y], by.x = "Y", by.y = "Y", all.x = T)
+summary.dt <- merge(summary.dt, features.dt[!is.na(`zofenopril:A375`), .(`median zofenopril:A375 zscore` = median(`zofenopril:A375`)), by = Y], by.x = "Y", by.y = "Y", all.x = T)
+summary.dt <- merge(summary.dt, features.dt[!is.na(`nitrendipine:EFO27`), .(`median nitrendipine:EFO27 zscore` = median(`nitrendipine:EFO27`)), by = Y], by.x = "Y", by.y = "Y", all.x = T)
+summary.dt <- merge(summary.dt, features.dt[!is.na(`LUNG (NCIH1930)`), .(`median expression in LUNG (NCIH1930)` = median(`LUNG (NCIH1930)`)), by = Y], by.x = "Y", by.y = "Y", all.x = T)
+summary.dt <- merge(summary.dt, features.dt[!is.na(`ENDOMETRIUM (HEC265)`), .(`median expression in ENDOMETRIUM (HEC265)` = median(`ENDOMETRIUM (HEC265)`)), by = Y], by.x = "Y", by.y = "Y", all.x = T)
+summary.dt[, `% targets with PPI:HSPA1A` := ifelse(Y == "pos", `% targets with PPI:HSPA1A`/sumpos*100,`% targets with PPI:HSPA1A`/sumneg*100)]
+summary.dt[, `% targets with PPI:IL10` := ifelse(Y == "pos", `% targets with PPI:IL10`/sumpos*100,`% targets with PPI:IL10`/sumneg*100)]
+summary.dt[, `% targets with PPI:GAPDHS` := ifelse(Y == "pos", `% targets with PPI:GAPDHS`/sumpos*100,`% targets with PPI:GAPDHS`/sumneg*100)]
+summary.dt[, `% targets involved in MAPK1/MAPK3 signaling` := ifelse(Y == "pos", `% targets involved in MAPK1/MAPK3 signaling`/sumpos*100,`% targets involved in MAPK1/MAPK3 signaling`/sumneg*100)]
+summary.dt[, `% targets involved in Influenza Infection` := ifelse(Y == "pos", `% targets involved in Influenza Infection`/sumpos*100,`% targets involved in Influenza Infection`/sumneg*100)]
+summary.dt[, `% targets involved in transcription from RNA polymerase II promoter` := ifelse(Y == "pos", `% targets involved in transcription from RNA polymerase II promoter`/sumpos*100,`% targets involved in transcription from RNA polymerase II promoter`/sumneg*100)]
+summary.dt[, Y := ifelse(Y == "pos", "Antineoplastic drug targets", "COSMIC oncogenes")]
+setnames(summary.dt, "Y", "Target set")
+
+dbDisconnect(conn)
+rm(conn)
+kable(summary.dt, caption = "COSMIC oncogenes vs Antineoplastic drug targets top features based on XGB model", format = 'pandoc', digits = 2)
+```
+

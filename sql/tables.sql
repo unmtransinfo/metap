@@ -1,0 +1,8 @@
+create table protein(protein_id serial primary key, swissprot varchar(20), accession varchar(10) unique, symbol varchar(30), name varchar(200), species varchar(40), tax_id int, ensembl_gene_id varchar(18), ncbi_gene_id int);
+create type go_aspect as enum('B', 'F', 'C');
+create table go(go_id char(10) primary key, name varchar(200), definition varchar(2000), aspect go_aspect);
+create table goa(protein_id int references protein(protein_id) on delete cascade, go_id char(10) references go(go_id) on delete cascade, evidence varchar(3), assigned_by varchar(50));
+create table reactome(reactome_id varchar(20) primary key, name varchar(200), species varchar(40));
+create table reactomea(protein_id int references protein(protein_id) on delete cascade, reactome_id varchar(20) references reactome(reactome_id) on delete cascade, evidence char(3));
+create table homology(hid serial primary key, homologene_group_id int, tax_id int, ncbi_gene_id int, symbol varchar(40), protein_gi int, ref_seq varchar(20), protein_id int references protein(protein_id) on delete cascade);
+create table mouse_pheno(mp_id serial primary key, mp_term_id char(10), mp_term_name varchar(100), marker_symbol varchar(20), marker_accession_id varchar(20), significant boolean, p_value double precision, phenotype_sex varchar(20), life_stage_acc varchar(20), life_stage_name varchar(20), statistical_method varchar(100), parameter_name varchar(100), effect_size double precision, zygosity varchar(20), protein_id int references protein(protein_id) on delete cascade);
