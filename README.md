@@ -49,6 +49,66 @@ From implementation `gene_disease_omim.R` (by Oleg Ursu)
 | GTEx | NOT METAPATHS: gene expression signature simple ML features combined with vectorized metapaths.  |
 
 ---
+### Database
+
+This is the PostgreSql db built from various selected sources and used at runtime
+for model building. A knowledge graph is represented via relational db. A separate
+`metap_dev` also exists.
+
+`$ echo '\d+' |psql -d metap`
+```
+                               List of relations
+ Schema |          Name          |   Type   | Owner |    Size    |  
+--------+------------------------+----------+-------+------------+
+ public | ccle                   | table    | oleg  | 1237 MB    |
+ public | ccle_ccle_id_seq       | sequence | oleg  | 8192 bytes |
+ public | clinvar                | table    | oleg  | 189 MB     |
+ public | clinvar_cv_id_seq      | sequence | oleg  | 8192 bytes |
+ public | clinvar_disease        | table    | oleg  | 728 kB     |
+ public | clinvar_disease_xref   | table    | oleg  | 960 kB     |
+ public | disease_onto           | table    | oleg  | 696 kB     |
+ public | do_xref                | table    | oleg  | 2432 kB    |
+ public | drug_name              | table    | oleg  | 256 kB     |
+ public | ensembl                | table    | oleg  | 5288 kB    |
+ public | gene_info              | table    | oleg  | 912 kB     |
+ public | go                     | table    | oleg  | 13 MB      |
+ public | goa                    | table    | oleg  | 25 MB      |
+ public | gtex                   | table    | oleg  | 188 MB     |
+ public | gwas                   | table    | oleg  | 17 MB      |
+ public | homology               | table    | oleg  | 3096 kB    |
+ public | homology_hid_seq       | sequence | oleg  | 8192 bytes |
+ public | hpa_norm_tissue        | table    | oleg  | 65 MB      |
+ public | interpro               | table    | oleg  | 2680 kB    |
+ public | interproa              | table    | oleg  | 20 MB      |
+ public | iuphar_class           | table    | oleg  | 240 kB     |
+ public | jensen_disease         | table    | oleg  | 8560 kB    |
+ public | kegg_pathway           | table    | oleg  | 1920 kB    |
+ public | lincs                  | table    | oleg  | 13 GB      |
+ public | lincs_lincs_id_seq     | sequence | oleg  | 8192 bytes |
+ public | mouse2human            | view     | oleg  | 0 bytes    |
+ public | mousephenotype         | table    | oleg  | 202 MB     |
+ public | mp_onto                | table    | oleg  | 1048 kB    |
+ public | ncbi                   | table    | oleg  | 2640 kB    |
+ public | omim                   | table    | oleg  | 1952 kB    |
+ public | omim2phen_series       | table    | oleg  | 168 kB     |
+ public | omim_phen_series       | table    | oleg  | 56 kB      |
+ public | protein                | table    | oleg  | 15 MB      |
+ public | protein2mgi            | table    | oleg  | 3352 kB    |
+ public | protein2rgd            | table    | oleg  | 1064 kB    |
+ public | protein_protein_id_seq | sequence | oleg  | 8192 bytes |
+ public | rat2human              | table    | oleg  | 672 kB     |
+ public | rat_qtl                | table    | oleg  | 512 kB     |
+ public | rat_term               | table    | oleg  | 12 MB      |
+ public | rdo                    | table    | oleg  | 1264 kB    |
+ public | rdo_xref               | table    | oleg  | 1480 kB    |
+ public | reactome               | table    | oleg  | 2248 kB    |
+ public | reactomea              | table    | oleg  | 15 MB      |
+ public | stringdb               | table    | oleg  | 1056 kB    |
+ public | stringdb_score         | table    | oleg  | 215 MB     |
+ public | uniprot_disease        | table    | oleg  | 488 kB     |
+(46 rows)
+```
+---
 ### Progress Summary
 
 In 2018, Oleg Ursu at UNM Translational Informatics Division developed a supervised
