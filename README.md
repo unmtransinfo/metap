@@ -17,6 +17,10 @@ Copied from Oleg Ursu's directory `metap` on seaborgium, minus data.
       data.table, Matrix, tidyr, tidyverse, fst
     * **I/O/Db/Misc:**
       readr, readxl, RJDBC, RPostgreSQL, KEGGREST, ontologyIndex
+  * **Other:**
+    * R packages may also have dependencies, additional R packages,
+      and/or libraries for compilation and/or execution.
+  * See table of selected R package dependencies below.
 
 ---
 ### Metapath Semantics:
@@ -169,3 +173,25 @@ into a professional product.
 Also important is organizing and documenting the code for sharing, collaboration,
 and reuse. As of Oct 2018 the development, deployment and all use were on
 one computer at UNM, via one login.
+
+---
+
+### R package dependencies (selected)
+
+From `R -e 'write.csv(data.table(installed.packages()))'`
+
+| Package | Version | Depends | Imports | NeedsCompilation |
+| :--- | :---: | :--- | :--- | :---: |
+| data.table | 1.11.4 | R (>= 3.1.0) | methods | yes |
+| DMwR | 0.4.1 | R(>= 2.10), methods, graphics, lattice (>= 0.18-3), grid (>= 2.10.1) | xts (>= 0.6-7), quantmod (>= 0.3-8), zoo (>= 1.6-4), abind (>= 1.1-0), rpart (>= 3.1-46), class (>= 7.3-1), ROCR (>= 1.0) | no |
+| fst | 0.8.8 | R (>= 3.0.0) | Rcpp | yes |
+| knitr | 1.2 | R (>= 3.1.0) | evaluate (>= 0.10), highr, markdown, stringr (>= 0.6), yaml, methods, tools | no |
+| parallelDist | 0.2.1 | R (>= 3.0.2) | Rcpp (>= 0.12.6), RcppParallel (>= 4.3.20) | yes |
+| readr | 1.1.1 | R (>= 3.0.2) | Rcpp (>= 0.12.0.5), tibble, hms, R6 | yes |
+| recipes | 0.1.3 | R (>= 3.1), dplyr, broom | tibble, stats, ipred, dimRed (>= 0.1.0), lubridate, timeDate, ddalpha, purrr (>= 0.2.3), rlang (>= 0.1.1), gower, RcppRoll, tidyselect (>= 0.1.1), magrittr, Matrix, tidyr, pls | no |
+| reshape2 | 1.4.3 | R (>= 3.1) | plyr (>= 1.8.1), Rcpp, stringr | yes |
+| stringr | 1.3.1 | R (>= 3.1) | glue (>= 1.2.0), magrittr, stringi (>= 1.1.7) | no |
+| tidyr | 0.8.1 | R (>= 3.1) | dplyr (>= 0.7.0), glue, magrittr, purrr, Rcpp, rlang, stringi, tibble, tidyselect | yes |
+| tidyselect | 0.2.4 | R (>= 3.1) | glue, purrr, rlang (>= 0.2.0), Rcpp (>= 0.12.0) | yes |
+| xgboost | 0.6.4.1 | R (>= 3.3.0) | Matrix (>= 1.1-0), methods, data.table (>= 1.9.6), magrittr (>= 1.5), stringi (>= 0.5.2) | yes |
+| xgboostExplainer | 0.1 | R (>= 3.0.0) | data.table, xgboost, waterfalls, scales, ggplot2 | NA |
