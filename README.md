@@ -17,10 +17,13 @@ Copied from Oleg Ursu's directory `metap` on seaborgium, minus data.
       data.table, Matrix, tidyr, tidyverse, fst
     * **I/O/Db/Misc:**
       readr, readxl, RJDBC, RPostgreSQL, KEGGREST, ontologyIndex
+    * See table of selected R package dependencies below.
   * **Other:**
     * R packages may also have dependencies, additional R packages,
       and/or libraries for compilation and/or execution.
-  * See table of selected R package dependencies below.
+  * **PostgreSQL:**
+    * Version 10.5
+    * Other versions may be ok.
 
 ---
 ### Metapath Semantics:
