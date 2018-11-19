@@ -1,14 +1,16 @@
-# MetaPathML codebase
+# MetaPathML Codebase
+
+**Contents:**
 
  * [Semantics](#semantics)
  * [Database](#database)
  * [Dependencies](#dependencies)
+ * [R Package Dependencies](#rdependencies)
 
 See also: [MetaPathML History and Progress Notes](doc/HISTORY.md)
 
 ---
-<a name="semantics" />
-### Metapath Semantics:
+### <a name="semantics" />Metapath Semantics:
 
 A.k.a. network topology of evidence chains.
 
@@ -42,8 +44,7 @@ From implementation `gene_disease_omim.R` (by Oleg Ursu)
 | IDs | UniProt |  Protein IDs | 
 
 ---
-<a name="database" />
-### Database
+### <a name="database" />Database
 
 This is the PostgreSql db built from various selected sources and used at runtime
 for model building. A knowledge graph is represented via relational db. A separate
@@ -103,8 +104,7 @@ for model building. A knowledge graph is represented via relational db. A separa
 (46 rows)
 ```
 ---
-<a name="dependencies" />
-### Dependencies:
+### <a name="dependencies" />Dependencies:
 
   * **R:**
     * Version 3.4.3 (Nov 2017)
@@ -128,7 +128,7 @@ for model building. A knowledge graph is represented via relational db. A separa
     * Versions 9.* should work with reduced performance.
     * Other versions may be ok.
 
-### R package dependencies (selected)
+### <a name="rdependencies" />R package dependencies (selected)
 
 From `R -e 'write.csv(data.table(installed.packages()))'`
 
