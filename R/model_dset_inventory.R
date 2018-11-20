@@ -22,14 +22,14 @@ for (f in dfiles) {
   writeLines(sprintf("\tcols: %d", ncol(dt)))
   attrs <- attributes(dt)
   for (key in names(attrs)) {
-    if (length(attrs[[key]])==1) {
+    if (length(attrs[[key]])==1 & (typeof(attrs[[key]]) %in% c("character","integer","double"))) {
       writeLines(sprintf("\t%s: %s", key, as.character(attrs[[key]])))
     } else {
-      writeLines(sprintf("\t%s: length = %d", key, length(attrs[[key]])))
+      writeLines(sprintf("\t%s: length = %d; type = %s", key, length(attrs[[key]]),
+	typeof(attrs[[key]])))
     }
   }
   rm(dt)
-  break
 }
 
 print(sprintf("elapsed time (total): %.2fs",(proc.time()-t0)[3]))
