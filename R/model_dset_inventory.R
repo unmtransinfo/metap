@@ -23,7 +23,7 @@ for (f in dfiles) {
     if (length(attrs[[key]])==1 & (typeof(attrs[[key]]) %in% c("character","integer","double"))) {
       writeLines(sprintf("\t\"%s\":\"%s\",", key, as.character(attrs[[key]])))
     } else {
-      writeLines(sprintf("\t\"%s_type\":\"%s\",", key, length(attrs[[key]])))
+      writeLines(sprintf("\t\"%s_type\":\"%s\",", key, typeof(attrs[[key]])))
       writeLines(sprintf("\t\"%s_length\":%d,", key, length(attrs[[key]])))
     }
   }
