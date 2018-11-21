@@ -3,6 +3,8 @@
 # Inventory the ML-ready datasets, each specific to either OMIM ID or MP ID.
 # JSON2TSV: pandas.read_json(intxt, orient='records').to_csv(sep='\t', index=False)
 ###
+# Can we see how many query genes?
+###
 #
 library(data.table)
 
@@ -14,12 +16,18 @@ dfiles <- list.files(ddir, pattern="*\\.rds")
 message(sprintf("Dataset files: %d", length(dfiles)))
 
 writeLines("[")
+i <- 0L
 for (f in dfiles) {
+  i <- i + 1L
   dt <- readRDS(sprintf("%s/%s", ddir, f))
   setDT(dt)
   writeLines(sprintf("{\"filename\":\"%s\",", f))
   writeLines(sprintf("\t\"rows\": %d,", nrow(dt)))
   writeLines(sprintf("\t\"cols\": %d,", ncol(dt)))
+  tbl <- table(paste(dt$Y, dt$subset, sep="_"))
+  if (length(tbl)>0) {
+    writeLines(sprintf("\t\"%s\":%d,", names(tbl), tbl))
+  }
   attrs <- attributes(dt)
   for (tag in names(attrs)) {
     if (length(attrs[[tag]])==1 & (typeof(attrs[[tag]]) %in% c("character","integer","double"))) {
@@ -29,7 +37,8 @@ for (f in dfiles) {
       writeLines(sprintf("\t\"%s_length\":%d,", tag, length(attrs[[tag]])))
     }
   }
-  writeLines("}")
+  writeLines(sprintf("}%s", ifelse(i<length(dfiles), ",", "")))
+  break #DEBUG
   rm(dt)
 }
 writeLines("]")
