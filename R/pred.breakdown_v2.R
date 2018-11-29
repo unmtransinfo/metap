@@ -6,11 +6,11 @@ library(xgboostExplainer)
 library(fst)
 library(RPostgreSQL)
 
-nthread <- 86
+nthread <- 32
 eps <- 0.9999999999999999
 
 readable.feature.names <- function(features) {
-  conn <- dbConnect(PostgreSQL(), user = "oleg", dbname = "metap")
+  conn <- dbConnect(PostgreSQL(), dbname = "metap") #credentials via ~/.pgpass
   protein <- dbGetQuery(conn, "select protein_id,accession,symbol from protein where accession is not null and tax_id = 9606")
   drug_name <- dbGetQuery(conn, "select drug_id,drug_name from drug_name")
   kegg.pathways <- dbGetQuery(conn, "select kegg_pathway_id, kegg_pathway_name from kegg_pathway")
@@ -66,11 +66,16 @@ readable.feature.names <- function(features) {
   return(features.names[, fname])
 }
 
-fn <- commandArgs(T)[1]
+args <- commandArgs(trailingOnly=TRUE)
+if (length(args)>0) {
+  fn <- args[1]
+} else {
+  fn <- "data/input/600807.rds"
+}
 fn.base <- sub(".rds", "", fn, fixed = T)
 fn.base <- sub("input", "output", fn.base, fixed = T)
 
-conn <- dbConnect(PostgreSQL(), user = "oleg", dbname = "metap")
+conn <- dbConnect(PostgreSQL(), dbname = "metap") #credentials via ~/.pgpass
 protein <- dbGetQuery(conn, "select protein_id,accession,symbol,name from protein where accession is not null and tax_id = 9606")
 dbDisconnect(conn)
 rm(conn)
@@ -92,6 +97,7 @@ meta.test <- merge(meta.test, protein, by.x = "protein_id", by.y = "protein_id",
 sumpos <- train[Y == "pos", .N]
 sumneg <- train[Y == "neg", .N]
 
+#NOTE: tune.tsv produced by xgboot_tune.R
 tune.dt <- fread(paste0(fn.base, "/tune.tsv"), header = T, sep = "\t", quote = "\"", na.strings = "NA")
 tune.dt <- tune.dt[order(-auc)]
 bestTune <- tune.dt[1, ]
@@ -109,7 +115,7 @@ meta.train <- merge(meta.train, protein, by.x = "protein_id", by.y = "protein_id
 set.seed(1234)
 model <- xgb.train(params = p, data = dtrain, nrounds = bestTune$nrounds, verbose = 1, nthread = nthread)
 xgb.save(model, paste0(fn.base, "/global.model"))
-explainer <- buildExplainer(xgb.model = model, type = "binary", base_score = 0.5, n_first_tree = model$niter - 1, trainingData = dtrain)
+explainer <- buildExplainer(xgb.model = model, type = "binary", base_score = 0.5, trainingData = dtrain)
 
 pred.breakdown <- explainPredictions(xgb.model = model, explainer = explainer, data = dtest)
 pred.breakdown[, `:=`(protein_id = meta.test$protein_id, accession = meta.test$accession)]
@@ -128,7 +134,7 @@ write.fst(pred.breakdown, paste0(fn.base, "/blind.pred.breakdown.fst"))
 cat("saved",paste0(fn.base, "/blind.pred.breakdown.fst"),"\n")
 pred <- predict(model, dtest)
 meta.test[, pred.prob := pred]
-ecdf.fn <- ecdf(meta.test[, pred.prob])
+ecdf.fn <- ecdf(meta.test[, pred.prob]) #empirical cumulative distribution function
 meta.test[, zscore := qnorm(ifelse(ecdf.fn(pred.prob) >= eps, eps, ecdf.fn(pred.prob)))]
 fwrite(meta.test, file = paste0(fn.base, "/", "blind.pred.tsv"), quote = T, sep = "\t", na = "NA", col.names = T, row.names = F)
 
