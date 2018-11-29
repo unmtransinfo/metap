@@ -1,14 +1,20 @@
 #!/usr/bin/env Rscript
-
+#
+library(RPostgreSQL)
 library(data.table)
 library(xgboost)
 library(Matrix)
 library(pROC)
 
-#fn <- "data/input/nature_schizophrenia.rds"
+t0 <- proc.time()
 
 #Read the data matrix in R binary format
-fn <- commandArgs(T)[1]
+args <- commandArgs(trailingOnly=TRUE)
+if (length(args)>0) {
+  fn <- args[1]
+} else {
+  fn <- "data/input/600807.rds"
+}
 fn.base <- sub(".rds", "", fn, fixed = T)
 fn.base <- sub("input", "output", fn.base, fixed = T)
 
@@ -18,11 +24,10 @@ if(!dir.exists(fn.base)) {
 }
 
 #Set the number of threads for xgboost library
-nthread <- 86
+nthread <- 32
 
 #extract protein list from Metap database
-library(RPostgreSQL)
-conn <- dbConnect(PostgreSQL(), user = "oleg", dbname = "metap")
+conn <- dbConnect(PostgreSQL(), dbname = "metap")
 protein <- dbGetQuery(conn, "select protein_id,accession,symbol from protein where accession is not null and tax_id = 9606")
 dbDisconnect(conn)
 rm(conn)
@@ -44,8 +49,8 @@ setDT(tune.grid.xgb)
 test.auc <- 0.0
 
 #use random seed to separate traning from validation sets (0.8 : 0.2)
-k <- 1
-seed <- 1000 + k
+k <- sample(1:1000, 1)
+seed <- 2000 + k
 set.seed(seed)
 train.pos.idx <- sample(dt[Y == "pos", id1], size = 0.8*dt[Y == "pos", .N])
 train.neg.idx <- sample(dt[Y == "neg", id1], size = 0.8*dt[Y == "neg", .N])
@@ -93,7 +98,14 @@ auc.dt <- data.table()
 tune.dt <- tune.dt[order(-auc)]
 #extract parameter values associated with best model performance based on AUC
 bestTune <- tune.dt[1, ]
-p <- list(eta = bestTune$eta, max_depth = bestTune$max_depth, gamma = bestTune$gamma, min_child_weight = bestTune$min_child_weight, subsample = bestTune$subsample, colsample_bytree = bestTune$colsample_bytree, objective = "binary:logistic", scale_pos_weight = sumneg/sumpos)
+p <- list(eta = bestTune$eta, 
+          max_depth = bestTune$max_depth, 
+          gamma = bestTune$gamma, 
+          min_child_weight = bestTune$min_child_weight, 
+          subsample = bestTune$subsample, 
+          colsample_bytree = bestTune$colsample_bytree, 
+          objective = "binary:logistic", 
+          scale_pos_weight = sumneg/sumpos)
 # train an XGBoost model and save it
 model <- xgb.train(params = p, data = dtrain, nrounds = bestTune$nrounds, verbose = 1, nthread = nthread)
 xgb.save(model, paste0(fn.base, "/", seed, ".model"))
@@ -108,8 +120,9 @@ fwrite(test.pred[order(-pred.prob)], paste0(fn.base, "/test.pred.tsv"), col.name
 test.auc <- auc
 
 run.count <- 1
+run.count.max <- 10
 #train 100 models using the same model paramets but with different seeds for training set and save models in XGBoost binary format
-while(run.count <= 100) {
+while(run.count <= run.count.max) {
   k  <- k + 1
   seed <- 1000 + k
   set.seed(seed)
@@ -151,3 +164,5 @@ while(run.count <= 100) {
 }
 
 fwrite(auc.dt, file = paste0(fn.base, "/test.auc.tsv"), sep = "\t", col.names = T, row.names = F, quote = T)
+
+message(sprintf("elapsed time (total): %.2fs",(proc.time()-t0)[3]))

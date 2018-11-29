@@ -24,9 +24,11 @@ for (f in dfiles) {
   writeLines(sprintf("{\"filename\":\"%s\",", f))
   writeLines(sprintf("\t\"rows\": %d,", nrow(dt)))
   writeLines(sprintf("\t\"cols\": %d,", ncol(dt)))
-  tbl <- table(paste(dt$Y, dt$subset, sep="_"))
-  if (length(tbl)>0) {
-    writeLines(sprintf("\t\"%s\":%d,", names(tbl), tbl))
+  if ("Y" %in% names(dt) & "subset" %in% names(dt)) {
+    tbl <- table(paste(dt$Y, dt$subset, sep="_"))
+    if (length(tbl)>0) {
+      writeLines(sprintf("\t\"%s\":%d,", names(tbl), tbl))
+    }
   }
   attrs <- attributes(dt)
   for (tag in names(attrs)) {
@@ -38,7 +40,7 @@ for (f in dfiles) {
     }
   }
   writeLines(sprintf("}%s", ifelse(i<length(dfiles), ",", "")))
-  break #DEBUG
+  #break #DEBUG
   rm(dt)
 }
 writeLines("]")
