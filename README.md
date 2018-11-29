@@ -7,7 +7,7 @@
  * [Dependencies](#dependencies)
  * [R Package Dependencies](#rdependencies)
 
-See also: [MetaPathML History and Progress Notes](doc/HISTORY.md)
+[History and Progress Notes](doc/HISTORY.md) | [Use of XGBoost](doc/xgboost_use.md)
 
 ---
 ### <a name="semantics" />Metapath Semantics:
