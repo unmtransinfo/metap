@@ -124,6 +124,7 @@ pred.breakdown <- pred.breakdown[log.odds != 0.0 & !is.na(log.odds)]
 if(nrow(pred.breakdown) == 0) {
 	stop("pred.breakdown empty!")
 }
+# What does "intercept" mean as a feature?
 pred.intercept <- pred.breakdown[feature == "intercept"]
 pred.breakdown <- pred.breakdown[feature != "intercept", head(.SD[order(-abs(log.odds))], 50), by = protein_id]
 pred.breakdown <- rbindlist(list(pred.intercept, pred.breakdown), use.names = T, fill = T)

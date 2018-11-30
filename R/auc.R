@@ -1,12 +1,21 @@
 #!/usr/bin/env Rscript
-
+###
+# Plot multiple ROC curves for a given model and set of random seeds (normally 100).
+# ROC curve with median AUC is highlighted.
+###
 library(data.table)
 library(plotROC)
 
-fn <- commandArgs(trailingOnly = T)[1]
+args <- commandArgs(trailingOnly=TRUE)
+if (length(args)>0) {
+  fn <- args[1]
+} else {
+  fn <- "data/input/167000.rds"
+}
 fn.base <- sub(".rds", "", fn, fixed = T)
 fn.base <- sub("input", "output", fn.base, fixed = T)
 
+# File produced by xgboost_tune.R
 auc.dt <- fread(paste0(fn.base, "/", "test.auc.tsv"), header = T, sep = "\t", quote = "\"", na.strings = "NA")
 max.auc <- auc.dt[, max(auc)]
 min.auc <- auc.dt[, min(auc)]
@@ -20,13 +29,15 @@ if(nrow(auc.dt[auc == median.auc]) == 0) {
   median.auc <- auc.dt[median.diff == min.diff, max(auc)]
   median.seed <- auc.dt[auc == median.auc, seed]
 } else {
-  median.seed <- auc.dt[auc == median.auc, seed]
+  median.seed <- auc.dt[auc == median.auc, seed][1]
 }
-
+#
+# File produced by xgboost_tune.R
 dt <- fread(paste0(fn.base, "/", "test.pred.tsv"), header = T, sep = "\t", quote = "\"", na.strings = "NA")
 dt[, D := ifelse(Y == "pos", 1, 0)]
 dt.median <- dt[seed == median.seed]
 
+# All ROC curves in datatable, by seed.
 roc.dt <- data.table()
 for(s in dt[, unique(seed)]) {
   d <- calculate_roc(dt[seed == s, pred.prob], dt[seed == s, D])
@@ -34,9 +45,10 @@ for(s in dt[, unique(seed)]) {
   d[, seed := s]
   roc.dt <- rbindlist(list(roc.dt, d))
 }
-
+# TPF/FPF = True/False positive fraction
 fwrite(roc.dt[, .(FPF, TPF, seed)], paste0(fn.base, "/", "test.roc.coord.tsv"), col.names = T, row.names = F, sep = "\t", quote = T, na = "NA")
-
+#
+# Compute AUC mean, SD.
 m1 <- roc.dt[, .SD[which.max(TPF)], by = FPF]
 m2 <- roc.dt[, .SD[which.min(TPF)], by = FPF]
 setnames(m1, "TPF", "ymax")

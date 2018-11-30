@@ -1,13 +1,16 @@
 #!/usr/bin/env Rscript
-
+###
+# xgb.importance() computes Gain, Cover and Frequency. By default, importance = Gain.
+###
 library(xgboost)
 library(data.table)
 library(DMwR)
 library(ggplot2)
+library(Ckmeans.1d.dp)
 library(RPostgreSQL)
 
 readable.feature.names <- function(features) {
-  conn <- dbConnect(PostgreSQL(), user = "oleg", dbname = "metap")
+  conn <- dbConnect(PostgreSQL(), dbname = "metap") # Credentials via ~/.pgpass
   protein <- dbGetQuery(conn, "select protein_id,accession,symbol from protein where accession is not null and tax_id = 9606")
   drug_name <- dbGetQuery(conn, "select drug_id,drug_name from drug_name")
   kegg.pathways <- dbGetQuery(conn, "select kegg_pathway_id, kegg_pathway_name from kegg_pathway")
@@ -63,7 +66,12 @@ readable.feature.names <- function(features) {
   return(features.names[, fname])
 }
 
-fn <- commandArgs(T)[1]
+args <- commandArgs(trailingOnly=TRUE)
+if (length(args)>0) {
+  fn <- args[1]
+} else {
+  fn <- "data/input/167000.rds"
+}
 fn.base <- sub(".rds", "", fn, fixed = T)
 fn.base <- sub("input", "output", fn.base, fixed = T)
 
