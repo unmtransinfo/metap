@@ -39,9 +39,9 @@ From implementation `gene_disease_omim.R` (by Oleg Ursu)
 | Expression | CCLE | NOT METAPATHS: expression profile fused with vectorized metapaths.  |
 | Function | GeneOntology (GO) | Gene to gene via GO annotations |
 | Function | InterPro | Gene to gene via InterPro annotations |
-| Ontology | DO |  Disease Ontology | 
-| Ontology | MP |  Mammalian Phenotypes | 
-| IDs | UniProt |  Protein IDs | 
+| Ontology | DO |  Disease Ontology |
+| Ontology | MP |  Mammalian Phenotypes |
+| IDs | UniProt |  Protein IDs |
 
 ---
 ### <a name="database" />Database
@@ -146,4 +146,7 @@ From `R -e 'write.csv(data.table(installed.packages()))'`
 | tidyr | 0.8.1 | R (>= 3.1) | dplyr (>= 0.7.0), glue, magrittr, purrr, Rcpp, rlang, stringi, tibble, tidyselect | yes |
 | tidyselect | 0.2.4 | R (>= 3.1) | glue, purrr, rlang (>= 0.2.0), Rcpp (>= 0.12.0) | yes |
 | xgboost | 0.6.4.1 | R (>= 3.3.0) | Matrix (>= 1.1-0), methods, data.table (>= 1.9.6), magrittr (>= 1.5), stringi (>= 0.5.2) | yes |
-| xgboostExplainer | 0.1 | R (>= 3.0.0) | data.table, xgboost, waterfalls, scales, ggplot2 | NA |
+| xgboostExplainer | 0.1 | R (>= 3.0.0) | data.table, xgboost, waterfalls, scales, ggplot2 | NA<sup>*</sup> |
+
+<sup>*</sup>[xgboostExplainer](https://rdrr.io/github/davidADSP/xgboostExplainer/)
+installation: `library(devtools); install_github("davidADSP/xgboostExplainer")`
