@@ -23,7 +23,10 @@ if(!dir.exists(fn.base)) {
   dir.create(fn.base)
 }
 
-#Set the number of threads for xgboost library
+#Set the number of threads for xgboost library.
+#(Oleg set to 86 on 88-core/500GB seaborgium.)
+#Does this affect memory requirement? Apparently not, since nthread=16 failed
+#on 96GB chiltepin with same memory error as nthread=32 and no more progress output.
 nthread <- 32
 
 #extract protein list from Metap database
@@ -118,6 +121,8 @@ auc.dt <- rbindlist(list(auc.dt, record), use.names = T)
 cat("best CV AUC = ", cv.auc, ", current test AUC = ", auc, ", best test AUC = ", test.auc, "\n")
 fwrite(test.pred[order(-pred.prob)], paste0(fn.base, "/test.pred.tsv"), col.names = T, row.names = F, sep = "\t", quote = T, na = "NA")
 test.auc <- auc
+
+message(sprintf("NOTE: parameters optimized; elapsed time: %.2fs",(proc.time()-t0)[3]))
 
 run.count <- 1
 run.count.max <- 10
