@@ -38,12 +38,13 @@ omim.ps <- dbGetQuery(conn, "SELECT * FROM omim2phen_series")
 #Extract all OMIM phenotype series terms
 ps.name <- dbGetQuery(conn, "SELECT * FROM omim_phen_series");
 ###
-#Extract all UniProt (are the same as OMIM) diseases
+# Extract all UniProt (are the same as OMIM) diseases
 uniprot.disease <- dbGetQuery(conn, "SELECT * FROM uniprot_disease");
-#Extract all disease/phenotype gene associations from ClinVar
+# Extract all disease/phenotype gene associations from ClinVar. This list is roughly half the clinical_significance
+# values. Could there be a simpler rule?
 clinvar <- dbGetQuery(conn, "SELECT DISTINCT clinvar.protein_id,clinvar.clinical_significance,clinvar_disease.cv_dis_id,phenotype,source,source_id FROM clinvar_disease,clinvar_disease_xref,clinvar WHERE clinvar_disease.cv_dis_id=clinvar_disease_xref.cv_dis_id AND source = 'OMIM' AND clinvar.cv_dis_id=clinvar_disease.cv_dis_id AND clinical_significance IN ('Pathogenic, Affects','Benign, protective, risk factor','Pathogenic/Likely pathogenic','Pathogenic/Likely pathogenic, other','Pathogenic, other','Affects','Pathogenic, other, protective','Conflicting interpretations of pathogenicity, Affects, association, other','Pathogenic/Likely pathogenic, drug response','Pathogenic, risk factor','risk factor','Pathogenic, association','Conflicting interpretations of pathogenicity, Affects, association, risk factor','Pathogenic/Likely pathogenic, risk factor','Affects, risk factor','Conflicting interpretations of pathogenicity, association, other, risk factor','Likely pathogenic, association','association, protective','Likely pathogenic, Affects','Pathogenic','Conflicting interpretations of pathogenicity, association','Pathogenic/Likely pathogenic, Affects, risk factor','Conflicting interpretations of pathogenicity, other, risk factor','association, risk factor','Benign, protective','Conflicting interpretations of pathogenicity, risk factor','Uncertain significance, protective','association','Uncertain significance, Affects','protective, risk factor','Pathogenic, association, protective','Pathogenic, protective','Likely pathogenic, other','Pathogenic, protective, risk factor','Benign, association, protective','Conflicting interpretations of pathogenicity, Affects','Benign/Likely benign, protective','protective')")
 
-#Extract the list of human proteins
+# Extract list of human proteins
 protein <- dbGetQuery(conn, "SELECT * FROM protein WHERE tax_id = 9606");
 dbDisconnect(conn)
 rm(conn)
@@ -55,33 +56,33 @@ setDT(ps.name)
 setDT(clinvar)
 setDT(protein)
 
-#Map OMIM phenotypes in UniProt to phenotypic series id
-#(by OMIM id, aka "phenotype MIM number")
+# Map OMIM phenotypes in UniProt to phenotypic series id
+# (by OMIM id, aka "phenotype MIM number")
 uniprot.disease <- merge(uniprot.disease, omim.ps, by.x = "ref_id", by.y = "mim", all.x = T)
 
-#Map OMIM phenotypic series id to names
+# Map OMIM phenotypic series id to names
 uniprot.disease <- merge(uniprot.disease, ps.name, by.x = "omim_phen_series_id", by.y = "omim_phen_series_id", all.x = T)
-#Change column names to match OMIM column names
+# Change column names to match OMIM column names
 setnames(uniprot.disease, c("ref_id", "term", "title"), c("mim", "mim_title", "pheno_series_title"))
 uniprot.disease[, `:=`(disease_id = NULL, dbref = NULL)]
 
-#Map OMIM phenotypes in ClinVar to phenotypic series id
+# Map OMIM phenotypes in ClinVar to phenotypic series id
 #(by OMIM id, aka "phenotype MIM number")
 clinvar$source_id <- as.integer(clinvar$source_id)
 clinvar <- merge(clinvar, omim.ps, by.x = "source_id", by.y = "mim", all.x = T)
-#Map OMIM phenotypic series id to names
+# Map OMIM phenotypic series id to names
 clinvar <- merge(clinvar, ps.name, by.x = "omim_phen_series_id", by.y = "omim_phen_series_id", all.x = T)
-#Change column names to match OMIM column names
+# Change column names to match OMIM column names
 setnames(clinvar, c("source_id","phenotype","title"), c("mim","mim_title","pheno_series_title"))
 clinvar[, `:=`(clinical_significance = NULL, cv_dis_id = NULL, source = NULL)]
 clinvar <- unique(clinvar)
 
-#Concatenate gene - OMIM phenotype associations from ClinVar, UniProt, and RGD
+# Concatenate gene - OMIM phenotype associations from ClinVar, UniProt, and RGD
 g2d <- rbindlist(list(uniprot.disease, clinvar), use.names = T)
 g2d <- unique(g2d)
 writeLines(sprintf("Total genes associated with ANY PS: %d", length(unique(g2d$protein_id[!is.na(g2d$omim_phen_series_id)]))))
 #
-#Select OMIM phentypic series associated with at least 50 genes
+# Select OMIM phentypic series associated with sufficient genes (MIN_NGENES).
 MIN_NGENES <- 50L
 top.phentype.series <- g2d[!is.na(pheno_series_title), .(uq_prot = uniqueN(protein_id)), by = pheno_series_title][uq_prot >= MIN_NGENES]
 #
@@ -91,7 +92,7 @@ if (nrow(top.phentype.series)==0) {
 }
 writeLines(sprintf("PS: %-44s; NGENES: %3d", top.phentype.series$pheno_series_title, top.phentype.series$uq_prot))
 
-#Add OMIM phentypic series ids
+# Add OMIM phenotypic series ids
 top.phentype.series <- merge(top.phentype.series, unique(g2d[, .(pheno_series_title, omim_phen_series_id)]), by.x = "pheno_series_title", by.y = "pheno_series_title")
 
 #Extract data matrix for OMIM phenotypic series (random selection for this demo).
