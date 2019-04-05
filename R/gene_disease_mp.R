@@ -1,5 +1,7 @@
 #!/usr/bin/env Rscript
-
+###
+# "MP" = Mammalian Phenotype
+###
 library(data.table)
 library(RPostgreSQL)
 library(Matrix)
@@ -20,6 +22,7 @@ scale.data.table <- function(dt) {
   dt[, (col.names) := lapply(.SD, scale), .SDcols=col.names]
 }
 
+# Determine hierarchical ontology levels via parent_id. Top/root 0-level term MP_0000001 is "mammalian phenotype"
 onto.level.list <- function(dt) {
   lev <- 0
   onto <- copy(dt)
@@ -47,13 +50,18 @@ onto.level.list <- function(dt) {
   return(onto)
 }
 
-conn <- dbConnect(PostgreSQL(), user = "oleg", dbname = "metap")
+conn <- dbConnect(PostgreSQL(), dbname = "metap") #credentials from .pgpass
 mp.onto <- dbGetQuery(conn, "SELECT * from mp_onto")
+#
+### Mouse MP to gene associations (true/false, ~3% true)
 mouse.phen <- dbGetQuery(conn, "select * from mousephenotype")
 mouse2human <- dbGetQuery(conn, "select h.protein_id human_protein_id,m.protein_id mouse_protein_id FROM homology h INNER JOIN homology m on h.homologene_group_id = m.homologene_group_id and h.tax_id = 9606 and m.tax_id = 10090")
+#
+### Rat MP to gene associations (all true except MP_0005560, "decreased circulating glucose level" ??)
 rat.term <- dbGetQuery(conn, "select * from rat_term WHERE ontology = 'Mammalian Phenotype'")
 rat2human <- dbGetQuery(conn, "select * from rat2human")
 rgd2protein <- dbGetQuery(conn, "select * from protein2rgd")
+#
 protein <- dbGetQuery(conn, "select * from protein where tax_id = 9606");
 dbDisconnect(conn)
 rm(conn)
@@ -70,6 +78,7 @@ mp.onto.long <- onto.level.list(mp.onto)
 
 mouse.phen <- merge(mouse.phen, mouse2human, by.x = "protein_id", by.y = "mouse_protein_id", sort = F)
 mouse.phen <- mouse.phen[, .(human_protein_id, mp_term_id, association)]
+
 rat.term <- merge(rat.term, rgd2protein, by.x = "rgd_id", by.y = "rgd_id", sort = F)
 rat.term <- merge(rat.term, rat2human, by.x = "protein_id", by.y = "rat_protein_id", sort = F)
 rat.term <- rat.term[, .(human_protein_id, term_id, qualifier)]
@@ -88,6 +97,8 @@ g2d <- unique(g2d)
 g2d <- g2d[level > 1]
 g2d.count <- g2d[, .(prot_count = uniqueN(protein_id)), by = .(association, parent_id)]
 g2d.count <- dcast(g2d.count, parent_id ~ association, value.var = "prot_count", fun.aggregate = sum)
+
+### Keep only MPs with at least minimum counts (50).
 g2d.count <- g2d.count[`TRUE` >= 50 & `FALSE` >= 50]
 
 for(term_id in g2d.count[, unique(parent_id)]) {
