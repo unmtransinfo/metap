@@ -1,0 +1,67 @@
+Context 
+	
+	run() -> 
+		runs context 
+
+Data 
+	
+	frame
+	label
+	features 
+
+	loadFromFile(type,path) ->
+		loads file from path, can be tsv/csv/RDS 
+		
+		THROWS if? -> not dataframe 
+
+	removeCols(list of strings) -> 
+		removes these columns
+
+	split(half) -> takes a percent, will split on this value, keep other half of data availible 
+
+	shuffle() 
+		-> shuffles the data frame in question
+
+	makeLabel(labelString) -> 
+		-> will set the column in question as label, other cols as features 
+
+
+
+Model 
+
+	
+	monteCV -> run monteCarlo CV on some labels -> will take in a data format, return a results object
+	CV -> run CV on some labels -> return a results object
+	predict -> predict on some labels -> return a results object
+
+	TYPE is passed in, gives our output object a specific type 
+
+on type, we can perform different metrics, simply by calling the metric on the type... types will bind specifc data to our 
+
+
+Output -> Abstract class? 
+	get labels 
+	get features? 
+	get ids? 
+	
+	get results 
+		- get result will be if there are n ouputs, select for them, if there is 1 output, select for that 
+
+	getAUC...defined per output type?... could these methods be shared?, with this you could say ... 
+
+	ROC() {
+		return auc(this.labels,this.results) # this spawns just output at which point, ready for results 
+	}
+	....etc 
+
+Results -> 
+
+	init(label?) 
+		will auto save the data to a flat file 
+
+	plot()
+		will plot data ... x lines 
+
+	table()
+		will take several datasets, compute a cross section 
+
