@@ -18,7 +18,7 @@ writeLines(sprintf("\tRows: %d; Cols: %d", nrow(dt), length(dt)))
 
 writeLines(sprintf("\tColumns, 1:3 and samples:"))
 jj <- sort(c(1:3, sample(4:nrow(dt), 12)))
-writeLines(sprintf("\t\t%5d.\t%s\n", jj, names(dt)[jj]))
+writeLines(sprintf("\t\t%5d.\t%s", jj, names(dt)[jj]))
 
 dt_counts <- dt[, .(.N), by=c("subset")]
 writeLines(sprintf("\tsubset:%s\tN:%5d", dt_counts$subset, dt_counts$N))
